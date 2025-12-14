@@ -1,33 +1,29 @@
-import psutil
+import win32gui
 import pyautogui
 import time
 
-KEYWORD = "osu!"  # match any osu! process
+def find_osu_windows():
+    osu_titles = []
 
-def find_osu_process():
-    for p in psutil.process_iter(['name', 'cmdline']):
-        try:
-            name = p.info.get('name') or ""
-            cmdline = " ".join(p.info.get('cmdline') or [])
-            if KEYWORD.lower() in name.lower() or KEYWORD.lower() in cmdline.lower():
-                return p.pid, name  # return PID and full name
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            continue
-    return None, None
+    def callback(hwnd, extra):
+        if win32gui.IsWindowVisible(hwnd):
+            title = win32gui.GetWindowText(hwnd)
+            if "osu!" in title.lower():  # match substring
+                osu_titles.append(title)
+        return True
+
+    win32gui.EnumWindows(callback, None)
+    return osu_titles
 
 while True:
-    pid, name = find_osu_process()
-    if pid:
-        print(f"osu is running! PID={pid}, Name={name}")
-
-        # Example: move the mouse to the center of the screen
-        screen_width, screen_height = pyautogui.size()
-        pyautogui.moveTo(screen_width // 2, screen_height // 2)
-
-        # Example: click (you can replace with osu! interaction logic)
-        # pyautogui.click()
-
+    titles = find_osu_windows()
+    if titles:
+        for t in titles:
+            print(f"osu window detected: {t}")
+            # Example: move mouse to center
+            screen_width, screen_height = pyautogui.size()
+            pyautogui.moveTo(screen_width // 2, screen_height // 2)
     else:
-        print("osu process not running")
+        print("osu is not running")
     
     time.sleep(1)
